@@ -22,5 +22,64 @@
     "build": "latest",
     "memoryMbytes": 512,
     "timeoutSecs": 300
+  },
+  "output": {
+    "actorOutputSchemaVersion": 1,
+    "title": "Extracted Web Markdown Documents Output",
+    "properties": {
+      "dataset": {
+        "type": "string",
+        "title": "Extracted Web Markdown Documents",
+        "template": "{{links.apiDefaultDatasetUrl}}/items"
+      }
+    }
+  },
+  "storages": {
+    "dataset": {
+      "actorSpecification": 1,
+      "fields": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "title": "url"
+          },
+          "title": {
+            "type": "string",
+            "title": "title"
+          },
+          "description": {
+            "type": "string",
+            "title": "description"
+          },
+          "markdown": {
+            "type": "string",
+            "title": "markdown"
+          },
+          "wordCount": {
+            "type": "string",
+            "title": "wordCount"
+          }
+        }
+      },
+      "views": {
+        "overview": {
+          "title": "Extracted Web Markdown Documents",
+          "transformation": {
+            "fields": [
+              "url",
+              "title",
+              "description",
+              "markdown",
+              "wordCount"
+            ]
+          },
+          "display": {
+            "component": "table",
+            "properties": {}
+          }
+        }
+      }
+    }
   }
 }
