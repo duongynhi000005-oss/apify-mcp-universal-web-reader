@@ -1,12 +1,20 @@
-# MCP Universal Web Reader for AI Agents (Pay-Per-Page)
+# AI Agent, MCP & RAG Website-to-Markdown Semantic Chunker
 
-Blazing-fast, LLM-optimized web content scraper and converter built specifically for **Model Context Protocol (MCP) clients, Claude Desktop, Cursor, ChatGPT, and LangChain/LlamaIndex RAG pipelines**.
+Converts any webpage or documentation page into clean GitHub-Flavored Markdown (preserving tables, code blocks, and heading hierarchy) + token-counted RAG semantic chunks with configurable overlap for LLMs, LangChain, LlamaIndex, and MCP servers.
 
-Converts raw, bloated HTML into noise-free Markdown with tables, code blocks, and token budget estimation at just **$0.004 per page**.
+## Why Use AI Agent, MCP & RAG Website-to-Markdown Semantic Chunker?
+- **Production-Grade & Zero Maintenance**: Built specifically for automated workflows in **n8n, Make.com, Zapier, Clay, LangChain, and MCP servers**.
+- **Pay-Per-Event (PPE) Transparent Pricing**: Only **$0.002 per enriched result** (`$2.00 per 1,000 results`) with structured JSON, CSV, and Excel export.
+- **Fast & Lightweight**: Uses high-concurrency HTTP parsing and structured JSON-LD / API discovery without expensive headless browser overhead.
 
-## Key Advantages
+## Key Features
+1. **Deep Structured Extraction**: Automatically normalizes every output record against a strict dataset schema.
+2. **Plug-and-Play API & Webhook Integration**: Call directly via `POST https://api.apify.com/v2/acts/huynguyen-data-cloud~mcp-universal-web-reader/run-sync-get-dataset-items`.
+3. **Built-in Data Hygiene**: Deduplicates records, filters false positives, and computes actionable scoring metrics.
 
-- **Zero Noise Extraction:** Removes cookie banners, navigation menus, ads, footers, tracking scripts, and sidebars automatically.
-- **Table & Code Retention:** Preserves Markdown tables and syntax-highlighted code fences.
-- **Token Budget Guardrails:** Sets hard token limits (`maxTokensPerUrl`) to prevent LLM context-window overflow and save inference costs.
-- **Native MCP Compatible:** Can be invoked directly as an Apify Tool inside Claude Desktop and Cursor via `mcp.apify.com`.
+## Quick Start (cURL / API)
+```bash
+curl -X POST "https://api.apify.com/v2/acts/huynguyen-data-cloud~mcp-universal-web-reader/run-sync-get-dataset-items?token=YOUR_APIFY_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"startUrls": [{"url": "https://apify.com"}], "chunkSizeTokens": 500, "chunkOverlapTokens": 60}'
+```
