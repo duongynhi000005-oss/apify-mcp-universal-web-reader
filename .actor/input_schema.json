@@ -1,51 +1,35 @@
 {
-  "title": "MCP Universal Web Reader Input",
+  "title": "AI Agent & RAG Website-to-Markdown Chunker Input",
   "type": "object",
   "schemaVersion": 1,
   "properties": {
-    "urls": {
-      "title": "Target Webpage URLs",
+    "startUrls": {
+      "title": "Target Webpages or Docs URLs",
       "type": "array",
-      "description": "List of webpage URLs to fetch, strip noise, and convert into clean LLM-ready format.",
-      "editor": "stringList",
-      "prefill": ["https://news.ycombinator.com/item?id=38870199"]
+      "description": "URLs to convert into LLM-ready Markdown and token-counted RAG chunks.",
+      "editor": "requestListSources",
+      "default": [
+        {
+          "url": "https://apify.com"
+        }
+      ],
+      "prefill": [
+        {
+          "url": "https://apify.com"
+        }
+      ]
     },
-    "outputFormat": {
-      "title": "Output Format",
-      "type": "string",
-      "description": "Choose output formatting: clean Markdown, raw clean text, or structured JSON sections.",
-      "editor": "select",
-      "default": "markdown",
-      "enum": ["markdown", "cleanText", "structuredJson"],
-      "enumTitles": ["Clean Markdown (Recommended for LLMs)", "Clean Plain Text", "Structured JSON Sections"]
-    },
-    "includeLinks": {
-      "title": "Include Hyperlinks",
-      "type": "boolean",
-      "description": "Preserve markdown hyperlinks [text](url). Set to false to reduce token usage.",
-      "default": true
-    },
-    "includeTables": {
-      "title": "Include Markdown Tables",
-      "type": "boolean",
-      "description": "Format HTML tables into clean GitHub-flavored Markdown tables.",
-      "default": true
-    },
-    "maxTokensPerUrl": {
-      "title": "Max Tokens Per Page",
+    "chunkSizeTokens": {
+      "title": "RAG Chunk Size (Tokens)",
       "type": "integer",
-      "description": "Maximum token budget per webpage before truncation. Default 4000 tokens (~16,000 characters).",
-      "default": 4000,
-      "minimum": 500,
-      "maximum": 32000
+      "description": "Target token count per semantic chunk for vector database ingestion.",
+      "default": 500
     },
-    "proxyConfiguration": {
-      "title": "Proxy Configuration",
-      "type": "object",
-      "description": "Apify Proxy configuration to bypass Cloudflare and CAPTCHAs.",
-      "editor": "proxy",
-      "default": { "useApifyProxy": false }
+    "chunkOverlapTokens": {
+      "title": "RAG Chunk Overlap (Tokens)",
+      "type": "integer",
+      "description": "Token overlap between consecutive chunks to preserve context.",
+      "default": 60
     }
-  },
-  "required": ["urls"]
+  }
 }
