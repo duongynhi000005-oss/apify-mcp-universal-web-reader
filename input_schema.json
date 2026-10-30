@@ -1,0 +1,35 @@
+{
+  "title": "AI Agent & RAG Website-to-Markdown Chunker Input",
+  "type": "object",
+  "schemaVersion": 1,
+  "properties": {
+    "startUrls": {
+      "title": "Target Webpages or Docs URLs",
+      "type": "array",
+      "description": "URLs to convert into LLM-ready Markdown and token-counted RAG chunks.",
+      "editor": "requestListSources",
+      "default": [
+        {
+          "url": "https://apify.com"
+        }
+      ],
+      "prefill": [
+        {
+          "url": "https://apify.com"
+        }
+      ]
+    },
+    "chunkSizeTokens": {
+      "title": "RAG Chunk Size (Tokens)",
+      "type": "integer",
+      "description": "Target token count per semantic chunk for vector database ingestion.",
+      "default": 500
+    },
+    "chunkOverlapTokens": {
+      "title": "RAG Chunk Overlap (Tokens)",
+      "type": "integer",
+      "description": "Token overlap between consecutive chunks to preserve context.",
+      "default": 60
+    }
+  }
+}
