@@ -1,212 +1,107 @@
 import { Actor } from 'apify';
-import { CheerioCrawler } from 'crawlee';
+import * as cheerio from 'cheerio';
 
 await Actor.init();
 
-const input = (await Actor.getInput()) ?? {};
-const {
-    urls = [],
-    outputFormat = 'markdown',
-    includeLinks = true,
-    includeTables = true,
-    maxTokensPerUrl = 4000,
-    proxyConfiguration: customProxyConfig,
-} = input;
+const input = (await Actor.getInput()) || {};
+const startUrls = Array.isArray(input.startUrls) && input.startUrls.length > 0
+    ? input.startUrls
+    : [{ url: 'https://apify.com' }];
+const chunkSizeTokens = Number(input.chunkSizeTokens ?? 500);
+const chunkOverlapTokens = Number(input.chunkOverlapTokens ?? 60);
 
-if (!Array.isArray(urls) || urls.length === 0) {
-    await Actor.exit({ exitCode: 0, statusMessage: 'No URLs provided in input.' });
-}
-
-function estimateTokenCount(text) {
-    if (!text || typeof text !== 'string') return 0;
-    return Math.ceil(text.trim().length / 4);
-}
-
-function truncateToTokenBudget(text, maxTokens) {
-    if (!maxTokens || maxTokens <= 0) return { content: text, truncated: false };
-    const maxChars = maxTokens * 4;
-    if (text.length <= maxChars) return { content: text, truncated: false };
-
-    const slice = text.slice(0, maxChars);
-    const lastSentenceEnd = Math.max(
-        slice.lastIndexOf('. '),
-        slice.lastIndexOf('.\n'),
-        slice.lastIndexOf('\n\n'),
-    );
-    const safeEnd = lastSentenceEnd > maxChars * 0.7 ? lastSentenceEnd + 1 : maxChars;
-    return {
-        content: `${text.slice(0, safeEnd)}\n\n[... Truncated: Exceeded ${maxTokens} tokens limit ...]`,
-        truncated: true,
-    };
-}
-
-function htmlToMarkdown($, element, { includeLinks: keepLinks, includeTables: keepTables }) {
-    $(element).find([
-        'script', 'style', 'noscript', 'nav', 'footer', 'header', 'aside',
-        '.ad', '.ads', '.advertisement', '.sidebar', '.cookie-banner',
-        '.newsletter-signup', '[role="navigation"]', '[role="banner"]',
-        '[role="complementary"]', 'svg', 'canvas', 'iframe',
-    ].join(', ')).remove();
-
-    $(element).find('pre').each((_, pre) => {
-        const codeEl = $(pre).find('code');
-        const lang = (codeEl.attr('class') || '').match(/language-([a-z0-9_-]+)/i)?.[1] || '';
-        const codeText = codeEl.length ? codeEl.text() : $(pre).text();
-        $(pre).replaceWith(`\n\n\`\`\`${lang}\n${codeText.trim()}\n\`\`\`\n\n`);
-    });
-
-    $(element).find('code').each((_, code) => {
-        const t = $(code).text().trim();
-        $(code).replaceWith(`\`${t}\``);
-    });
-
-    for (let h = 1; h <= 6; h++) {
-        const hashes = '#'.repeat(h);
-        $(element).find(`h${h}`).each((_, heading) => {
-            const txt = $(heading).text().trim();
-            $(heading).replaceWith(`\n\n${hashes} ${txt}\n\n`);
-        });
-    }
-
-    $(element).find('blockquote').each((_, bq) => {
-        const lines = $(bq).text().trim().split('\n').map((l) => `> ${l.trim()}`).join('\n');
-        $(bq).replaceWith(`\n\n${lines}\n\n`);
-    });
-
-    if (keepTables) {
-        $(element).find('table').each((_, tbl) => {
+function htmlToStructuredMarkdown($) {
+    $('script, style, noscript, iframe, svg, nav, footer, header, [role="navigation"], [class*="cookie"], [id*="cookie"]').remove();
+    const lines = [];
+    $('h1, h2, h3, h4, p, pre, li, table').each((_, el) => {
+        const tag = (el.tagName || '').toLowerCase();
+        if (tag === 'h1') lines.push(`\n# ${$(el).text().trim()}\n`);
+        else if (tag === 'h2') lines.push(`\n## ${$(el).text().trim()}\n`);
+        else if (tag === 'h3') lines.push(`\n### ${$(el).text().trim()}\n`);
+        else if (tag === 'h4') lines.push(`\n#### ${$(el).text().trim()}\n`);
+        else if (tag === 'pre') {
+            const code = $(el).text().trim();
+            if (code) lines.push(`\n\`\`\`\n${code}\n\`\`\`\n`);
+        } else if (tag === 'li') {
+            const txt = $(el).text().replace(/\s+/g, ' ').trim();
+            if (txt) lines.push(`- ${txt}`);
+        } else if (tag === 'table') {
             const rows = [];
-            $(tbl).find('tr').each((_, tr) => {
+            $(el).find('tr').each((rIdx, tr) => {
                 const cols = [];
-                $(tr).find('th, td').each((_, cell) => {
-                    cols.push($(cell).text().trim().replace(/\|/g, '\\|').replace(/\n+/g, ' '));
-                });
-                if (cols.length > 0) rows.push(cols);
+                $(tr).find('th, td').each((__, cell) => cols.push($(cell).text().replace(/\s+/g, ' ').trim()));
+                if (cols.length) {
+                    rows.push(`| ${cols.join(' | ')} |`);
+                    if (rIdx === 0) rows.push(`| ${cols.map(() => '---').join(' | ')} |`);
+                }
             });
-
-            if (rows.length === 0) return;
-            const colCount = Math.max(...rows.map((r) => r.length));
-            let mdTable = '\n\n';
-            const headerRow = rows[0].concat(Array(Math.max(0, colCount - rows[0].length)).fill(''));
-            mdTable += `| ${headerRow.join(' | ')} |\n`;
-            mdTable += `| ${Array(colCount).fill('---').join(' | ')} |\n`;
-            for (let i = 1; i < rows.length; i++) {
-                const row = rows[i].concat(Array(Math.max(0, colCount - rows[i].length)).fill(''));
-                mdTable += `| ${row.join(' | ')} |\n`;
-            }
-            mdTable += '\n';
-            $(tbl).replaceWith(mdTable);
-        });
-    } else {
-        $(element).find('table').remove();
-    }
-
-    $(element).find('ul > li').each((_, li) => {
-        const txt = $(li).text().trim();
-        $(li).replaceWith(`\n- ${txt}`);
-    });
-    $(element).find('ol > li').each((i, li) => {
-        const txt = $(li).text().trim();
-        $(li).replaceWith(`\n${i + 1}. ${txt}`);
-    });
-
-    if (keepLinks) {
-        $(element).find('a[href]').each((_, a) => {
-            const href = $(a).attr('href')?.trim();
-            const text = $(a).text().trim();
-            if (href && text && !href.startsWith('javascript:')) {
-                $(a).replaceWith(`[${text}](${href})`);
-            }
-        });
-    }
-
-    $(element).find('strong, b').each((_, el) => {
-        $(el).replaceWith(`**${$(el).text().trim()}**`);
-    });
-    $(element).find('em, i').each((_, el) => {
-        $(el).replaceWith(`*${$(el).text().trim()}*`);
-    });
-
-    return $(element).text()
-        .replace(/\r\n/g, '\n')
-        .replace(/\n{3,}/g, '\n\n')
-        .trim();
-}
-
-let proxyConfiguration;
-try {
-    if (customProxyConfig?.useApifyProxy) {
-        proxyConfiguration = await Actor.createProxyConfiguration(customProxyConfig);
-    }
-} catch (err) {
-    console.warn(`[Proxy Warning] Falling back to direct connection: ${err.message}`);
-}
-
-const crawler = new CheerioCrawler({
-    proxyConfiguration,
-    maxRequestsPerCrawl: urls.length,
-    maxConcurrency: 10,
-    requestHandlerTimeoutSecs: 30,
-    async requestHandler({ $, request }) {
-        const url = request.url;
-        const pageTitle = $('head title').text().trim() || $('h1').first().text().trim() || 'Untitled Page';
-        const metaDescription = $('meta[name="description"]').attr('content')?.trim() || '';
-
-        const contentSelector = ['article', 'main', '[role="main"]', '.main-content', '#content', 'body']
-            .find((s) => $(s).length > 0) || 'body';
-
-        const mainElement = $(contentSelector).first();
-        let extractedContent = '';
-
-        if (outputFormat === 'cleanText') {
-            mainElement.find('script, style, noscript, nav, footer').remove();
-            extractedContent = mainElement.text().replace(/\s+/g, ' ').trim();
-        } else if (outputFormat === 'structuredJson') {
-            const sections = [];
-            mainElement.find('h1, h2, h3').each((_, el) => {
-                const hTag = el.tagName.toLowerCase();
-                const title = $(el).text().trim();
-                const content = $(el).nextUntil('h1, h2, h3').text().trim();
-                sections.push({ level: hTag, title, content });
-            });
-            extractedContent = JSON.stringify(sections, null, 2);
+            if (rows.length) lines.push('\n' + rows.join('\n') + '\n');
         } else {
-            extractedContent = htmlToMarkdown($, mainElement, { includeLinks, includeTables });
+            const txt = $(el).text().replace(/\s+/g, ' ').trim();
+            if (txt.length > 15) lines.push(txt);
         }
+    });
+    return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
 
-        const { content: finalContent, truncated } = truncateToTokenBudget(extractedContent, maxTokensPerUrl);
-        const estimatedTokens = estimateTokenCount(finalContent);
+function buildSemanticChunks(markdown, maxTokens, overlapTokens) {
+    const words = markdown.split(/\s+/).filter(Boolean);
+    const wordsPerChunk = Math.max(50, Math.floor(maxTokens * 0.75));
+    const overlapWords = Math.max(0, Math.min(wordsPerChunk - 10, Math.floor(overlapTokens * 0.75)));
+    const chunks = [];
+    for (let i = 0; i < words.length; i += (wordsPerChunk - overlapWords)) {
+        const slice = words.slice(i, i + wordsPerChunk);
+        if (!slice.length) break;
+        const text = slice.join(' ');
+        chunks.push({
+            chunkIndex: chunks.length,
+            estimatedTokens: Math.ceil(slice.length * 1.33),
+            text
+        });
+        if (i + wordsPerChunk >= words.length) break;
+    }
+    return chunks;
+}
 
-        try {
-            await Actor.charge({
-                eventName: 'mcp-page-extracted',
-                count: 1,
-            });
-        } catch (chargeErr) {
-            console.warn(`[Billing Note] Running outside Apify Store / PPE test mode: ${chargeErr.message}`);
-        }
+for (const item of startUrls) {
+    const rawUrl = typeof item === 'string' ? item : item?.url;
+    if (!rawUrl) continue;
+    const url = rawUrl.startsWith('http') ? rawUrl : `https://${rawUrl}`;
+
+    try {
+        const res = await fetch(url, {
+            headers: { 'User-Agent': 'Mozilla/5.0 (compatible; MCP-Universal-RAG-Reader/2.0)' }
+        });
+        const html = await res.text();
+        const $ = cheerio.load(html);
+        const title = $('title').first().text().trim() || url;
+        const description = $('meta[name="description"]').attr('content') || '';
+        const headings = [];
+        $('h1, h2, h3').each((_, h) => {
+            const t = $(h).text().replace(/\s+/g, ' ').trim();
+            if (t) headings.push({ level: h.tagName.toLowerCase(), text: t });
+        });
+
+        const markdown = htmlToStructuredMarkdown($);
+        const wordCount = markdown.split(/\s+/).filter(Boolean).length;
+        const estimatedTokens = Math.ceil(wordCount * 1.33);
+        const ragChunks = buildSemanticChunks(markdown, chunkSizeTokens, chunkOverlapTokens);
 
         await Actor.pushData({
             url,
-            title: pageTitle,
-            description: metaDescription,
-            format: outputFormat,
-            content: finalContent,
-            tokenCount: estimatedTokens,
-            isTruncated: truncated,
-            extractedAt: new Date().toISOString(),
-            status: 'success',
+            title,
+            description,
+            wordCount,
+            estimatedTokens,
+            chunksCount: ragChunks.length,
+            headings: headings.slice(0, 40),
+            markdown: markdown.slice(0, 35000),
+            ragChunks: ragChunks.slice(0, 50),
+            scrapedAt: new Date().toISOString()
         });
-    },
-    async failedRequestHandler({ request }, error) {
-        await Actor.pushData({
-            url: request.url,
-            status: 'failed',
-            error: error.message,
-            extractedAt: new Date().toISOString(),
-        });
-    },
-});
+    } catch (err) {
+        await Actor.pushData({ url, error: err.message, scrapedAt: new Date().toISOString() });
+    }
+}
 
-await crawler.run(urls);
 await Actor.exit();
