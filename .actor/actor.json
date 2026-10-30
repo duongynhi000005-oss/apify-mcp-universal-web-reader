@@ -1,0 +1,26 @@
+{
+  "actorSpecification": 1,
+  "name": "mcp-universal-web-reader-for-ai-agents",
+  "title": "MCP Universal Web Reader for AI Agents (Pay-Per-Page)",
+  "description": "Blazing-fast, LLM-optimized web content reader & converter for Claude, Cursor, ChatGPT, and MCP clients. Converts raw HTML into noise-free Markdown with tables and token estimates at $0.004/page.",
+  "version": "1.0.0",
+  "meta": {
+    "templateId": "project_cheerio_crawler_js"
+  },
+  "pricing": {
+    "pricingModel": "PAY_PER_EVENT",
+    "pricingPlan": {
+      "path": ".actor/pay_per_event.json"
+    }
+  },
+  "categories": [
+    "AI",
+    "DEVELOPER_TOOLS",
+    "INTEGRATIONS"
+  ],
+  "defaultRunOptions": {
+    "build": "latest",
+    "memoryMbytes": 512,
+    "timeoutSecs": 300
+  }
+}
