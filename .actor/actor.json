@@ -1,35 +1,23 @@
 {
   "actorSpecification": 1,
-  "name": "mcp-universal-web-reader-for-ai-agents",
-  "title": "MCP Universal Web Reader for AI Agents (Pay-Per-Page)",
-  "description": "Blazing-fast, LLM-optimized web content reader & converter for Claude, Cursor, ChatGPT, and MCP clients. Converts raw HTML into noise-free Markdown with tables and token estimates at $0.004/page.",
-  "version": "1.0.0",
+  "name": "mcp-universal-web-reader",
+  "title": "AI Agent, MCP & RAG Website-to-Markdown Semantic Chunker",
+  "description": "Converts any webpage or documentation page into clean GitHub-Flavored Markdown (preserving tables, code blocks, and heading hierarchy) + token-counted RAG semantic chunks with configurable overlap for LLMs, LangChain, LlamaIndex, and MCP servers.",
+  "version": "1.0",
   "meta": {
-    "templateId": "project_cheerio_crawler_js"
+    "templateId": "js-start"
   },
-  "pricing": {
-    "pricingModel": "PAY_PER_EVENT",
-    "pricingPlan": {
-      "path": ".actor/pay_per_event.json"
-    }
-  },
-  "categories": [
-    "AI",
-    "DEVELOPER_TOOLS",
-    "INTEGRATIONS"
-  ],
-  "defaultRunOptions": {
-    "build": "latest",
-    "memoryMbytes": 512,
-    "timeoutSecs": 300
-  },
+  "input": "./input_schema.json",
+  "dockerfile": "./Dockerfile",
   "output": {
     "actorOutputSchemaVersion": 1,
-    "title": "Extracted Web Markdown Documents Output",
+    "title": "AI Agent, MCP & RAG Website-to-Markdown Semantic Chunker Output",
+    "description": "Converts any webpage or documentation page into clean GitHub-Flavored Markdown (preserving tables, code blocks, and heading hierarchy) + token-counted RAG semantic chunks with configurable overlap for LLMs, LangChain, LlamaIndex, and MCP servers.",
+    "type": "object",
     "properties": {
-      "dataset": {
+      "results": {
         "type": "string",
-        "title": "Extracted Web Markdown Documents",
+        "title": "Enriched Dataset Items",
         "template": "{{links.apiDefaultDatasetUrl}}/items"
       }
     }
@@ -37,46 +25,74 @@
   "storages": {
     "dataset": {
       "actorSpecification": 1,
+      "title": "AI Agent, MCP & RAG Website-to-Markdown Semantic Chunker Dataset",
+      "description": "Converts any webpage or documentation page into clean GitHub-Flavored Markdown (preserving tables, code blocks, and heading hierarchy) + token-counted RAG semantic chunks with configurable overlap for LLMs, LangChain, LlamaIndex, and MCP servers.",
+      "views": {
+        "overview": {
+          "title": "Overview",
+          "transformation": {
+            "fields": [
+              "url",
+              "title",
+              "estimatedTokens",
+              "chunksCount",
+              "markdown"
+            ]
+          },
+          "display": {
+            "component": "table",
+            "properties": {
+              "url": {
+                "label": "URL",
+                "format": "text"
+              },
+              "title": {
+                "label": "Title",
+                "format": "text"
+              },
+              "estimatedTokens": {
+                "label": "Estimated Tokens",
+                "format": "text"
+              },
+              "chunksCount": {
+                "label": "RAG Chunks",
+                "format": "text"
+              },
+              "markdown": {
+                "label": "Clean Markdown",
+                "format": "text"
+              }
+            }
+          }
+        }
+      },
       "fields": {
         "type": "object",
         "properties": {
           "url": {
             "type": "string",
-            "title": "url"
+            "title": "URL",
+            "description": "URL"
           },
           "title": {
             "type": "string",
-            "title": "title"
+            "title": "Title",
+            "description": "Title"
           },
-          "description": {
-            "type": "string",
-            "title": "description"
+          "estimatedTokens": {
+            "type": "integer",
+            "title": "Estimated Tokens",
+            "description": "Estimated Tokens"
+          },
+          "chunksCount": {
+            "type": "integer",
+            "title": "RAG Chunks",
+            "description": "RAG Chunks"
           },
           "markdown": {
             "type": "string",
-            "title": "markdown"
-          },
-          "wordCount": {
-            "type": "string",
-            "title": "wordCount"
-          }
-        }
-      },
-      "views": {
-        "overview": {
-          "title": "Extracted Web Markdown Documents",
-          "transformation": {
-            "fields": [
-              "url",
-              "title",
-              "description",
-              "markdown",
-              "wordCount"
-            ]
-          },
-          "display": {
-            "component": "table",
-            "properties": {}
+            "title": "Clean Markdown",
+            "description": "Clean Markdown"
           }
         }
       }
