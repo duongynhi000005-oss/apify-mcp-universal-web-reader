@@ -1,17 +1,14 @@
 {
-  "name": "mcp-universal-web-reader-for-ai-agents",
+  "name": "mcp-universal-web-reader",
   "version": "1.0.0",
   "type": "module",
-  "description": "Apify Pay-per-Event Actor & MCP Universal Web Reader for AI Agents (Claude, Cursor, ChatGPT).",
+  "description": "Converts any webpage or documentation page into clean GitHub-Flavored Markdown (preserving tables, code blocks, and heading hierarchy) + token-counted RAG semantic chunks with configurable overlap for LLMs, LangChain, LlamaIndex, and MCP servers.",
   "main": "src/main.js",
   "scripts": {
     "start": "node src/main.js"
   },
-  "author": "Antigravity Solutions",
-  "license": "Apache-2.0",
   "dependencies": {
     "apify": "^3.2.0",
-    "crawlee": "^3.8.0",
-    "cheerio": "^1.0.0-rc.12"
+    "cheerio": "^1.0.0"
   }
 }
