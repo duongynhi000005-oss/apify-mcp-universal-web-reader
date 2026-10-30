@@ -1,0 +1,9 @@
+{
+  "actorChargeEvents": {
+    "mcp-page-extracted": {
+      "eventTitle": "MCP Page Extracted & Cleaned",
+      "eventDescription": "Charged once per successfully retrieved, cleaned, and LLM-converted web page.",
+      "eventPriceUsd": 0.004
+    }
+  }
+}
